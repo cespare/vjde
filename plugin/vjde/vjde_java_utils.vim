@@ -226,26 +226,26 @@ func! s:Java_get_type(str,v_v) "{{{2
         return substitute(str1,'\<\([^ \t]\+\)\s\+\<'.a:v_v.'\>','\1','')
 endf
 func! Vjde_get_set() " {{{2
-        let l:line = line('$')
+        let l:line = line('.')
         let l:v_v = expand('<cword>')
-        let str = getline(line('.'))
+        let str = getline(l:line)
         let l:v_t = s:Java_get_type(str,l:v_v)
         "let l:v_t = VjdeGetTypeName(l:v_v)
         let l:v_Va = substitute(l:v_v,"^\\(.\\)","\\U\\1","")
-        call append(l:line-1,"\t}")
-        call append(l:line-1,"\t\tthis.".l:v_v."=".l:v_v.";")
-        call append(l:line-1,"\tpublic void set".l:v_Va."(".l:v_t." ".l:v_v.") {")
-		call append(l:line-1,"\t */")
-		call append(l:line-1,"\t * @param ".l:v_v." the new value to be used")
-		call append(l:line-1,"\t * set a new value to ".l:v_v)
-		call append(l:line-1,"\t/**")
-        call append(l:line-1,"\t}")
-        call append(l:line-1,"\t\treturn this.".l:v_v.";")
-        call append(l:line-1,"\tpublic ".l:v_t." get".l:v_Va."(){")
-		call append(l:line-1,"\t */")
-		call append(l:line-1,"\t * @return the value of ".l:v_v)
-		call append(l:line-1,"\t * get the value of ".l:v_v)
-		call append(l:line-1,"\t/**")
+		call append(l:line,"\t/**")
+		call append(l:line+1,"\t * get the value of ".l:v_v)
+		call append(l:line+2,"\t * @return the value of ".l:v_v)
+		call append(l:line+3,"\t */")
+        call append(l:line+4,"\tpublic ".l:v_t." get".l:v_Va."(){")
+        call append(l:line+5,"\t\treturn this.".l:v_v.";")
+        call append(l:line+6,"\t}")
+		call append(l:line+7,"\t/**")
+		call append(l:line+8,"\t * set a new value to ".l:v_v)
+		call append(l:line+9,"\t * @param ".l:v_v." the new value to be used")
+		call append(l:line+10,"\t */")
+        call append(l:line+11,"\tpublic void set".l:v_Va."(".l:v_t." ".l:v_v.") {")
+        call append(l:line+12,"\t\tthis.".l:v_v."=".l:v_v.";")
+        call append(l:line+13,"\t}")
 endf 
 func! VjdePackageNameCompare1(i1,i2)
     return a:i1==a:i2?0 : a:i1 > a:i2 ? 1 : -1
@@ -353,7 +353,22 @@ func! Vjde_import_check(cls) "{{{2
     endif
     return s:Vjde_add_import(a:cls)
 endf
+func! s:Vjde_add_import_jsp(cls) "{{{2
+	let l:line_imp = search('^<%@.*\s*import\s\+','nb')
+        if l:line_imp <= 0 
+                let l:line_imp = search('^<%@\s*page\s\+','nb')
+				if l:line_imp<=0
+					let l:line_imp = 0
+				endif
+        endif
+        call append(l:line_imp,'<%@ page import="'.a:cls.'"%>')
+        return 1
+endf
 func! s:Vjde_add_import(cls) "{{{2
+
+		if &ft == 'jsp'
+			return s:Vjde_add_import_jsp(a:cls)
+		end
         if match(a:cls,'^java\.lang\.[A-Z]')==0
             return 0
         endif
@@ -925,6 +940,8 @@ endf "}}}2
 
 if g:vjde_utils_setup==1
 	au BufNewFile,BufRead *.java silent call s:Vjde_utils_setup()
+	au BufNewFile,BufRead *.jsp nnoremap <buffer> <silent> <Leader>ai :call Vjde_fix_import1()<cr>
+
 endif
 
 " vim:fdm=marker:sts=4:ts=4:ff=unix
